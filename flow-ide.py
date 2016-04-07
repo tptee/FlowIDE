@@ -16,6 +16,19 @@ def find_flow_config(filename):
     return find_flow_config(potential_root)
 
 
+def build_snippet(name, params):
+    snippet = name + '({})'
+    paramText = ''
+
+    for param in params:
+        if not paramText:
+            paramText += param["name"]
+        else:
+            paramText += ", " + param["name"]
+
+    return snippet.format(paramText)
+
+
 class FlowAutocompleteListener(sublime_plugin.EventListener):
     def on_query_completions(self, view, prefix, locations):
         filename = view.file_name()
@@ -52,7 +65,11 @@ class FlowAutocompleteListener(sublime_plugin.EventListener):
             [
                 (
                     match["name"] + "\t" + match["type"],
-                    match["name"]
+                    build_snippet(
+                        match["name"],
+                        match.get("func_details")["params"]
+                    )
+                    if match.get("func_details") else match["name"]
                 )
                 for match in result
             ],
