@@ -1,8 +1,13 @@
+from collections import namedtuple
 import json
 import os
 import sublime
 import sublime_plugin
 import subprocess
+
+CLIRequirements = namedtuple('CLIRequirements', [
+    'filename', 'project_root', 'contents', 'row', 'col'
+])
 
 
 def find_flow_config(filename):
@@ -29,50 +34,120 @@ def build_snippet(name, params):
     return snippet.format(paramText)
 
 
-class FlowAutocompleteListener(sublime_plugin.EventListener):
-    def on_query_completions(self, view, prefix, locations):
-        filename = view.file_name()
-        current_contents = view.substr(sublime.Region(0, view.size()))
-        project_root = find_flow_config(filename)
+def parse_cli_dependencies(view, **kwargs):
+    filename = view.file_name()
+    project_root = find_flow_config(filename)
 
-        cursor_pos = view.sel()[0].begin()
-        row, col = view.rowcol(cursor_pos)
+    cursor_pos = view.sel()[0].begin()
+    row, col = view.rowcol(cursor_pos)
 
+    current_contents = view.substr(
+        sublime.Region(0, view.size())
+    )
+
+    if kwargs.get('add_magic_token'):
         current_lines = current_contents.splitlines()
         current_line = current_lines[row]
         tokenized_line = current_line[0:col] + "AUTO332" + current_line[col:-1]
         current_lines[row] = tokenized_line
-        processed_lines = '\n'.join(current_lines)
+        current_contents = '\n'.join(current_lines)
 
-        # Use a pipe for flow autocomplete's stdin
-        read, write = os.pipe()
-        os.write(write, str.encode(processed_lines))
-        os.close(write)
+    return CLIRequirements(
+        filename=filename,
+        project_root=project_root,
+        contents=current_contents,
+        row=row, col=col
+    )
 
+
+def call_flow_cli(contents, command):
+    # Use a pipe for flow autocomplete's stdin
+    read, write = os.pipe()
+    os.write(write, str.encode(contents))
+    os.close(write)
+
+    try:
         output = subprocess.check_output(
-            [
-                "flow", "autocomplete",
-                "--from", "nuclide",
-                "--root", project_root,
-                "--json"
-            ],
-            stdin=read
+            command, stderr=subprocess.STDOUT, stdin=read
         )
-        result = json.loads(output.decode("utf-8"))["result"]
+        result = json.loads(output.decode("utf-8"))
         os.close(read)
 
-        return (
-            [
-                (
-                    match["name"] + "\t" + match["type"],
-                    build_snippet(
-                        match["name"],
-                        match.get("func_details")["params"]
+        return result
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        return None
+
+
+class FlowGoToDefinition(sublime_plugin.TextCommand):
+    def run(self, edit):
+        deps = parse_cli_dependencies(self.view)
+
+        result = call_flow_cli(deps.contents, [
+            "flow", "get-def",
+            "--from", "nuclide",
+            "--root", deps.project_root,
+            "--path", deps.filename,
+            "--json",
+            str(deps.row + 1), str(deps.col + 1)
+        ])
+
+        if result and result["path"]:
+            sublime.active_window().open_file(
+                result["path"] +
+                ":" + str(result["line"]) +
+                ":" + str(result["start"]),
+                sublime.ENCODED_POSITION |
+                sublime.TRANSIENT
+            )
+
+
+class FlowTypeHint(sublime_plugin.TextCommand):
+    def run(self, edit):
+        deps = parse_cli_dependencies(self.view)
+
+        result = call_flow_cli(deps.contents, [
+            "flow", "type-at-pos",
+            "--from", "nuclide",
+            "--root", deps.project_root,
+            "--json",
+            str(deps.row + 1), str(deps.col + 1)
+        ])
+
+        if result:
+            self.view.show_popup(result["type"])
+
+
+class FlowAutocomplete(sublime_plugin.EventListener):
+    def on_query_completions(self, view, prefix, locations):
+        if not view.match_selector(
+            locations[0],
+            "source.js - string - comment"
+        ):
+            return
+
+        deps = parse_cli_dependencies(view, add_magic_token=True)
+
+        result = call_flow_cli(deps.contents, [
+            "flow", "autocomplete",
+            "--from", "nuclide",
+            "--root", deps.project_root,
+            "--json"
+        ])
+
+        if result:
+            return (
+                [
+                    (
+                        match["name"] + "\t" + match["type"],
+                        build_snippet(
+                            match["name"],
+                            match.get("func_details")["params"]
+                        )
+                        if match.get("func_details") else match["name"]
                     )
-                    if match.get("func_details") else match["name"]
-                )
-                for match in result
-            ],
-            sublime.INHIBIT_WORD_COMPLETIONS |
-            sublime.INHIBIT_EXPLICIT_COMPLETIONS
-        )
+                    for match in result["result"]
+                ],
+                sublime.INHIBIT_WORD_COMPLETIONS |
+                sublime.INHIBIT_EXPLICIT_COMPLETIONS
+            )

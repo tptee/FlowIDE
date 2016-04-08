@@ -1,0 +1,24 @@
+[
+    {
+        "command": "flow_type_hint",
+        "keys": ["command+alt+t"],
+        "context": [
+            {
+                "key": "selector",
+                "operator": "equal",
+                "operand": "source.js - string - comment"
+            }
+        ]
+    },
+    {
+        "command": "flow_go_to_definition",
+        "keys": ["command+alt+j"],
+        "context": [
+            {
+                "key": "selector",
+                "operator": "equal",
+                "operand": "source.js - string - comment"
+            }
+        ]
+    }
+]

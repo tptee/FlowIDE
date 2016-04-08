@@ -1,0 +1,10 @@
+[
+    {
+        "command": "flow_type_hint",
+        "caption": "View Type (Flow)"
+    },
+    {
+        "command": "flow_go_to_definition",
+        "caption": "Go to Definition (Flow)"
+    }
+]
