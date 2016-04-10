@@ -197,9 +197,12 @@ class FlowListener(sublime_plugin.EventListener):
                 view.set_status('flow_error', 'Flow: no errors')
                 return
 
+            regions = []
+            description_by_row = {}
+
             for error in result['errors']:
-                regions = []
-                description = 'Flow: '
+                rows = []
+                description = ''
 
                 operation = error.get('operation')
                 if operation:
@@ -207,18 +210,37 @@ class FlowListener(sublime_plugin.EventListener):
                     col = int(operation['start']) - 1
                     endcol = int(operation['end'])
                     regions.append(rowcol_to_region(view, row, col, endcol))
+                    rows.append(row)
 
                 for message in error['message']:
                     row = int(message['line']) - 1
                     col = int(message['start']) - 1
                     endcol = int(message['end'])
                     regions.append(rowcol_to_region(view, row, col, endcol))
+                    rows.append(row)
 
-                    description += message['descr']
+                    description += message['descr'] + ' '
 
-                view.add_regions(
-                    'flow_error', regions, 'scope.js', 'dot',
-                    sublime.DRAW_NO_FILL
+                for row in rows:
+                    row_description = description_by_row.get(row)
+                    if not row_description:
+                        description_by_row[row] = description
+                    if row_description and description not in row_description:
+                        description_by_row[row] += '; ' + description
+
+            view.add_regions(
+                'flow_error', regions, 'scope.js', 'dot',
+                sublime.DRAW_NO_FILL
+            )
+
+            error_count = len(result['errors'])
+            error_count_text = 'Flow: {} error{}'.format(
+                error_count, '' if error_count is 1 else 's'
+            )
+            error_for_row = description_by_row.get(deps.row)
+            if error_for_row:
+                view.set_status(
+                    'flow_error', error_count_text + ': ' + error_for_row
                 )
-
-                view.set_status('flow_error', description)
+            else:
+                view.set_status('flow_error', error_count_text)
