@@ -1,6 +1,9 @@
 # FlowIDE
 
-Add first-class Flow support to Sublime Text! FlowIDE provides autocomplete, diagnostics, type hints, and jump-to-definition for the [Flow](http://flowtype.org/) static type checker for JS. FlowIDE provides the majority of Flow-related features implemented in Facebook's [Nuclide](http://nuclide.io/)
+Add first-class Flow support to Sublime Text! FlowIDE provides autocomplete, diagnostics, type hints, and jump-to-definition for the [Flow](http://flowtype.org/) static type checker for JS. FlowIDE provides the majority of Flow-related features implemented in Facebook's [Nuclide](http://nuclide.io/).
+
+## Requirements
+You'll need Sublime Text build `3070` or greater (tooltip support). Neither FlowIDE nor Flow support Windows.
 
 ## Usage
 Install with Package Control!
