@@ -9,16 +9,36 @@ CLIRequirements = namedtuple('CLIRequirements', [
     'filename', 'project_root', 'contents', 'cursor_pos', 'row', 'col'
 ])
 
+settings = sublime.load_settings('FlowIDE.sublime-settings')
+
 
 def find_flow_config(filename):
+    if not filename:
+        return
+
     if filename is '/':
         return '/'
 
     potential_root = os.path.dirname(filename)
     if os.path.isfile(os.path.join(potential_root, '.flowconfig')):
+        print('FlowIDE: using .flowconfig at', potential_root)
         return potential_root
 
     return find_flow_config(potential_root)
+
+
+def find_flow_bin(root_dir):
+    if settings.get('use_npm_flow'):
+        npm_flow_bin = os.path.join(
+            root_dir, 'node_modules/.bin/flow'
+        )
+        if os.path.isfile(npm_flow_bin):
+            print('FlowIDE: using npm flow binary at', npm_flow_bin)
+            return npm_flow_bin
+
+    flow_path = settings.get('flow_path', 'flow')
+    print('FlowIDE: using binary at', flow_path)
+    return flow_path
 
 
 def build_snippet(name, params):
@@ -99,8 +119,10 @@ class FlowGoToDefinition(sublime_plugin.TextCommand):
         if deps.project_root is '/':
             return
 
+        flow = find_flow_bin(deps.project_root)
+
         result = call_flow_cli(deps.contents, [
-            'flow', 'get-def',
+            flow, 'get-def',
             '--from', 'nuclide',
             '--root', deps.project_root,
             '--path', deps.filename,
@@ -127,8 +149,10 @@ class FlowTypeHint(sublime_plugin.TextCommand):
         if deps.project_root is '/':
             return
 
+        flow = find_flow_bin(deps.project_root)
+
         result = call_flow_cli(deps.contents, [
-            'flow', 'type-at-pos',
+            flow, 'type-at-pos',
             '--from', 'nuclide',
             '--root', deps.project_root,
             '--json',
@@ -151,8 +175,10 @@ class FlowListener(sublime_plugin.EventListener):
         if deps.project_root is '/':
             return
 
+        flow = find_flow_bin(deps.project_root)
+
         result = call_flow_cli(deps.contents, [
-            'flow', 'autocomplete',
+            flow, 'autocomplete',
             '--from', 'nuclide',
             '--root', deps.project_root,
             '--json'
@@ -180,12 +206,20 @@ class FlowListener(sublime_plugin.EventListener):
         if deps.project_root is '/':
             return
 
+        if (
+            '// @flow' not in deps.contents and
+            '/* @flow */' not in deps.contents
+        ):
+            return
+
         scope = view.scope_name(deps.cursor_pos)
         if 'source.js' not in scope:
             return
 
+        flow = find_flow_bin(deps.project_root)
+
         result = call_flow_cli(deps.contents, [
-            'flow', 'check-contents',
+            flow, 'check-contents',
             '--from', 'nuclide',
             '--json',
             deps.filename
