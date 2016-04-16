@@ -8,7 +8,7 @@ You'll need Sublime Text build `3070` or greater (tooltip support). Neither Flow
 ## Usage
 Install with Package Control!
 
-FlowIDE features only activate on files with the `// @flow` or `/* @flow */ declarations. It automatically determines the root directory and `.flowconfig` of the file you're currently working on.
+FlowIDE features only activate on files with the `// @flow` or `/* @flow */` declarations. It automatically determines the root directory and `.flowconfig` of the file you're currently working on.
 
 FlowIDE works out-of-the-box if the `flow` binary is in your `PATH`. To fit your needs, you can change the following settings: 
 - `flow_path` (string): the path to your `flow` binary.
