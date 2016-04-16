@@ -8,7 +8,11 @@ You'll need Sublime Text build `3070` or greater (tooltip support). Neither Flow
 ## Usage
 Install with Package Control!
 
-FlowIDE features only activate on files with the `// @flow` declaration.
+FlowIDE features only activate on files with the `// @flow` or `/* @flow */ declarations. It automatically determines the root directory and `.flowconfig` of the file you're currently working on.
+
+FlowIDE works out-of-the-box if the `flow` binary is in your `PATH`. To fit your needs, you can change the following settings: 
+- `flow_path` (string): the path to your `flow` binary.
+- `use_npm_flow` (boolean): if true, uses the binary from the npm `flow-bin` package in the `node_modules` of your current file's root directory. Using `flow-bin`'s binary will slow down editing features because it is wrapped in a Node script and starts an interpreter on each run.
 
 ### Diagnostics and Autocomplete
 Just works! Autocomplete generates snippets with parameter names when pressing `Enter`.
