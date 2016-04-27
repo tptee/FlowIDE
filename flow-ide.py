@@ -9,12 +9,30 @@ CLIRequirements = namedtuple('CLIRequirements', [
     'filename', 'project_root', 'contents', 'cursor_pos', 'row', 'col'
 ])
 
-settings = sublime.load_settings('FlowIDE.sublime-settings')
+settings = None
+plugin_ready = False
+
+
+def plugin_loaded():
+    global settings
+    global plugin_ready
+    settings = sublime.load_settings('FlowIDE.sublime-settings')
+    plugin_ready = True
+
+
+def wait_for_load(func):
+    def wrapper(*args, **kwargs):
+        global plugin_ready
+        if not plugin_ready:
+            return
+        return func(*args, **kwargs)
+
+    return wrapper
 
 
 def find_flow_config(filename):
     if not filename:
-        return
+        return '/'
 
     if filename is '/':
         return '/'
@@ -88,6 +106,7 @@ def parse_cli_dependencies(view, **kwargs):
 
 
 def call_flow_cli(contents, command):
+    print(command)
     # Use a pipe for flow autocomplete's stdin
     read, write = os.pipe()
     os.write(write, str.encode(contents))
@@ -106,11 +125,13 @@ def call_flow_cli(contents, command):
             os.close(read)
             return result
         except:
+            os.close(read)
             print(e.output)
             return None
 
 
 class FlowGoToDefinition(sublime_plugin.TextCommand):
+    @wait_for_load
     def run(self, edit):
         sublime.set_timeout_async(self.run_async)
 
@@ -141,6 +162,7 @@ class FlowGoToDefinition(sublime_plugin.TextCommand):
 
 
 class FlowTypeHint(sublime_plugin.TextCommand):
+    @wait_for_load
     def run(self, edit):
         sublime.set_timeout_async(self.run_async)
 
@@ -164,6 +186,7 @@ class FlowTypeHint(sublime_plugin.TextCommand):
 
 
 class FlowListener(sublime_plugin.EventListener):
+    @wait_for_load
     def on_query_completions(self, view, prefix, locations):
         if not view.match_selector(
             locations[0],
@@ -201,6 +224,7 @@ class FlowListener(sublime_plugin.EventListener):
                 sublime.INHIBIT_EXPLICIT_COMPLETIONS
             )
 
+    @wait_for_load
     def on_selection_modified_async(self, view):
         deps = parse_cli_dependencies(view)
         if deps.project_root is '/':
@@ -210,7 +234,7 @@ class FlowListener(sublime_plugin.EventListener):
             '// @flow' not in deps.contents and
             '/* @flow */' not in deps.contents
         ):
-            return
+            return view.erase_regions('flow_error')
 
         scope = view.scope_name(deps.cursor_pos)
         if 'source.js' not in scope:
