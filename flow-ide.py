@@ -186,8 +186,34 @@ class FlowTypeHint(sublime_plugin.TextCommand):
 
 
 class FlowListener(sublime_plugin.EventListener):
+    completions = None
+    completions_ready = False
+
+    # Used for async completions.
+    def run_auto_complete(self):
+        sublime.active_window().active_view().run_command("auto_complete", {
+            'disable_auto_insert': True,
+            'api_completions_only': False,
+            'next_completion_if_showing': False,
+            'auto_complete_commit_on_tab': True,
+        })
+
     @wait_for_load
     def on_query_completions(self, view, prefix, locations):
+        # Return the pending completions and clear them
+        if self.completions_ready and self.completions:
+            self.completions_ready = False
+            return self.completions
+
+        sublime.set_timeout_async(
+            lambda: self.on_query_completions_async(
+                view, prefix, locations
+            )
+        )
+
+    def on_query_completions_async(self, view, prefix, locations):
+        self.completions = None
+
         if not view.match_selector(
             locations[0],
             'source.js - string - comment'
@@ -203,12 +229,13 @@ class FlowListener(sublime_plugin.EventListener):
         result = call_flow_cli(deps.contents, [
             flow, 'autocomplete',
             '--from', 'nuclide',
+            '--retry-if-init', 'false'
             '--root', deps.project_root,
             '--json'
         ])
 
         if result:
-            return (
+            self.completions = (
                 [
                     (
                         match['name'] + '\t' + match['type'],
@@ -223,6 +250,11 @@ class FlowListener(sublime_plugin.EventListener):
                 sublime.INHIBIT_WORD_COMPLETIONS |
                 sublime.INHIBIT_EXPLICIT_COMPLETIONS
             )
+            self.completions_ready = True
+            sublime.active_window().active_view().run_command(
+                'hide_auto_complete'
+            )
+            self.run_auto_complete()
 
     @wait_for_load
     def on_selection_modified_async(self, view):
