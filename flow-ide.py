@@ -231,7 +231,8 @@ class FlowListener(sublime_plugin.EventListener):
             '--from', 'nuclide',
             '--retry-if-init', 'false',
             '--root', deps.project_root,
-            '--json'
+            '--json',
+            deps.filename,
         ])
 
         if result:
