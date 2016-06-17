@@ -177,6 +177,7 @@ class FlowTypeHint(sublime_plugin.TextCommand):
             flow, 'type-at-pos',
             '--from', 'nuclide',
             '--root', deps.project_root,
+            '--path', deps.filename,
             '--json',
             str(deps.row + 1), str(deps.col + 1)
         ])
