@@ -229,7 +229,7 @@ class FlowListener(sublime_plugin.EventListener):
         result = call_flow_cli(deps.contents, [
             flow, 'autocomplete',
             '--from', 'nuclide',
-            '--retry-if-init', 'false'
+            '--retry-if-init', 'false',
             '--root', deps.project_root,
             '--json'
         ])
