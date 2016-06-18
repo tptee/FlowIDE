@@ -177,6 +177,7 @@ class FlowTypeHint(sublime_plugin.TextCommand):
             flow, 'type-at-pos',
             '--from', 'nuclide',
             '--root', deps.project_root,
+            '--path', deps.filename,
             '--json',
             str(deps.row + 1), str(deps.col + 1)
         ])
@@ -229,9 +230,10 @@ class FlowListener(sublime_plugin.EventListener):
         result = call_flow_cli(deps.contents, [
             flow, 'autocomplete',
             '--from', 'nuclide',
-            '--retry-if-init', 'false'
+            '--retry-if-init', 'false',
             '--root', deps.project_root,
-            '--json'
+            '--json',
+            deps.filename,
         ])
 
         if result:
