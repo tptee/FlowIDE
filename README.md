@@ -10,9 +10,11 @@ Install with Package Control!
 
 FlowIDE features only activate on files with the `// @flow` or `/* @flow */` declarations. It automatically determines the root directory and `.flowconfig` of the file you're currently working on.
 
-FlowIDE works out-of-the-box if the `flow` binary is in your `PATH`. To fit your needs, you can change the following settings: 
+FlowIDE works out-of-the-box if the `flow` binary is in your `PATH` (note that your shell `PATH` may be different from your Python `PATH`). To fit your needs, you can change the following settings: 
 - `flow_path` (string): the path to your `flow` binary.
 - `use_npm_flow` (boolean): if true, uses the binary from the npm `flow-bin` package in the `node_modules` of your current file's root directory. Using `flow-bin`'s binary will slow down editing features because it is wrapped in a Node script and starts an interpreter on each run.
+- `omit_function_parameters`: (boolean) if true, omits the function parameters when autocompleting flow-typed functions.
+- `show_sublime_autocomplete_suggestions`: (boolean) if true, combines the autocomplete suggestions for Flow and default sublime instead of only showing the Flow suggestions.
 
 ### Diagnostics and Autocomplete
 Just works! Autocomplete generates snippets with parameter names when pressing `Enter`.
