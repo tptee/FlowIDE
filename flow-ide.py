@@ -12,6 +12,7 @@ CLIRequirements = namedtuple('CLIRequirements', [
 settings = None
 plugin_ready = False
 
+
 def plugin_loaded():
     global settings
     global plugin_ready
@@ -49,15 +50,15 @@ def find_flow_config(filename):
 def find_flow_settings(project_data):
     if not project_data or not project_data.get('FlowIDE'):
         return settings
-    project_settings = project_data.get('FlowIDE');
+    project_settings = project_data.get('FlowIDE')
 
-    if project_settings.get('use_npm_flow') == None:
+    if project_settings.get('use_npm_flow') is None:
         project_settings['use_npm_flow'] = settings.get('use_npm_flow')
-    if project_settings.get('flow_path') == None:
+    if project_settings.get('flow_path') is None:
         project_settings['flow_path'] = settings.get('flow_path')
-    if project_settings.get('omit_function_parameters') == None:
+    if project_settings.get('omit_function_parameters') is None:
         project_settings['omit_function_parameters'] = settings.get('omit_function_parameters')
-    if project_settings.get('show_sublime_autocomplete_suggestions') == None:
+    if project_settings.get('show_sublime_autocomplete_suggestions') is None:
         project_settings['show_sublime_autocomplete_suggestions'] = settings.get('show_sublime_autocomplete_suggestions')
 
     return project_settings
@@ -134,7 +135,7 @@ def call_flow_cli(contents, command, view):
     os.close(write)
 
     # Make sure that we have the default place flow is installed in our $PATH
-    if not '/usr/local/bin' in os.environ['PATH']:
+    if '/usr/local/bin' not in os.environ['PATH']:
         os.environ['PATH'] += ':/usr/local/bin'
 
     try:
