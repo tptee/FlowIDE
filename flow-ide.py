@@ -46,25 +46,32 @@ def find_flow_config(filename):
 
     return find_flow_config(potential_root)
 
+def get_settings_value(project_data, key):
+    if not project_data or not project_data.get('FlowIDE'):
+        return settings.get(key)
+
+    project_flow_ide_settings = project_data.get('FlowIDE')
+    if project_flow_ide_settings.get(key) is not None:
+        return project_flow_ide_settings.get(key)
+
+    return settings.get(key)
 
 # Settings can be overridden in .sublime_project files
 def find_flow_settings(project_data):
-    if not project_data or not project_data.get('FlowIDE'):
-        return settings
-    project_settings = project_data.get('FlowIDE')
+    flow_settings = {}
+    flow_settings['use_npm_flow'] = get_settings_value(project_data, 'use_npm_flow')
+    flow_settings['flow_path'] = get_settings_value(project_data, 'flow_path')
+    flow_settings['omit_function_parameters'] = get_settings_value(
+        project_data,
+        'omit_function_parameters'
+    )
+    flow_settings['show_sublime_autocomplete_suggestions'] = get_settings_value(
+        project_data,
+        'show_sublime_autocomplete_suggestions'
+    )
+    flow_settings['flow_debounce_ms'] = get_settings_value(project_data, 'flow_debounce_ms')
 
-    if project_settings.get('use_npm_flow') is None:
-        project_settings['use_npm_flow'] = settings.get('use_npm_flow')
-    if project_settings.get('flow_path') is None:
-        project_settings['flow_path'] = settings.get('flow_path')
-    if project_settings.get('omit_function_parameters') is None:
-        project_settings['omit_function_parameters'] = settings.get('omit_function_parameters')
-    if project_settings.get('show_sublime_autocomplete_suggestions') is None:
-        project_settings['show_sublime_autocomplete_suggestions'] = settings.get('show_sublime_autocomplete_suggestions')
-    if project_settings.get('flow_debounce_ms') is None:
-        project_settings['flow_debounce_ms'] = settings.get('flow_debounce_ms')
-
-    return project_settings
+    return flow_settings
 
 
 def find_flow_bin(root_dir, project_data):
@@ -429,7 +436,7 @@ class FlowListener(sublime_plugin.EventListener):
                 regions.append(rowcol_to_region(view, row, col, endcol, endrow))
 
             view.add_regions(
-                'flow_uncovered', regions, 'comment', 'dot',
+                'flow_uncovered', regions, 'comment', '',
                 sublime.DRAW_STIPPLED_UNDERLINE + sublime.DRAW_NO_FILL + sublime.DRAW_NO_OUTLINE
             )
 
