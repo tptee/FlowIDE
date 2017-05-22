@@ -4,6 +4,7 @@ import os
 import sublime
 import sublime_plugin
 import subprocess
+import threading
 
 CLIRequirements = namedtuple('CLIRequirements', [
     'filename', 'project_root', 'contents', 'cursor_pos', 'row', 'col'
@@ -11,6 +12,7 @@ CLIRequirements = namedtuple('CLIRequirements', [
 
 settings = None
 plugin_ready = False
+
 
 def plugin_loaded():
     global settings
@@ -49,16 +51,18 @@ def find_flow_config(filename):
 def find_flow_settings(project_data):
     if not project_data or not project_data.get('FlowIDE'):
         return settings
-    project_settings = project_data.get('FlowIDE');
+    project_settings = project_data.get('FlowIDE')
 
-    if project_settings.get('use_npm_flow') == None:
+    if project_settings.get('use_npm_flow') is None:
         project_settings['use_npm_flow'] = settings.get('use_npm_flow')
-    if project_settings.get('flow_path') == None:
+    if project_settings.get('flow_path') is None:
         project_settings['flow_path'] = settings.get('flow_path')
-    if project_settings.get('omit_function_parameters') == None:
+    if project_settings.get('omit_function_parameters') is None:
         project_settings['omit_function_parameters'] = settings.get('omit_function_parameters')
-    if project_settings.get('show_sublime_autocomplete_suggestions') == None:
+    if project_settings.get('show_sublime_autocomplete_suggestions') is None:
         project_settings['show_sublime_autocomplete_suggestions'] = settings.get('show_sublime_autocomplete_suggestions')
+    if project_settings.get('flow_debounce_ms') is None:
+        project_settings['flow_debounce_ms'] = settings.get('flow_debounce_ms')
 
     return project_settings
 
@@ -91,7 +95,7 @@ def build_snippet(name, params):
     return snippet.format(paramText)
 
 
-def rowcol_to_region(view, row, col, endcol, endrow = None):
+def rowcol_to_region(view, row, col, endcol, endrow=None):
     if not endrow:
         endrow = row
     start = view.text_point(row, col)
@@ -134,7 +138,7 @@ def call_flow_cli(contents, command, view):
     os.close(write)
 
     # Make sure that we have the default place flow is installed in our $PATH
-    if not '/usr/local/bin' in os.environ['PATH']:
+    if '/usr/local/bin' not in os.environ['PATH']:
         os.environ['PATH'] += ':/usr/local/bin'
 
     try:
@@ -163,6 +167,21 @@ def call_flow_cli(contents, command, view):
         print(e)
         view.set_status('flow_error', 'Unknown Flow error: ' + str(e))
         return None
+
+
+debounced_timers = {}
+
+
+def debounce(fn, delay, tag=None, *args):
+    tag = tag if tag else fn
+
+    if tag in debounced_timers:
+        debounced_timers[tag].cancel()
+
+    timer = threading.Timer(delay, fn, args)
+    timer.start()
+
+    debounced_timers[tag] = timer
 
 
 class FlowGoToDefinition(sublime_plugin.TextCommand):
@@ -302,6 +321,11 @@ class FlowListener(sublime_plugin.EventListener):
 
     @wait_for_load
     def on_selection_modified_async(self, view):
+        flow_settings = find_flow_settings(view.window().project_data())
+        # print('Selection modified, delaying %d' % flow_settings.get('flow_debounce_ms'))
+        debounce(self.run_check, flow_settings.get('flow_debounce_ms') / 1000, 'run_check', view)
+
+    def run_check(self, view):
         deps = parse_cli_dependencies(view)
         if deps.project_root is '/':
             return

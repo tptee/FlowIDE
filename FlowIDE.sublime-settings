@@ -2,5 +2,6 @@
     "flow_path": "flow",
     "use_npm_flow": false,
     "omit_function_parameters": false,
-    "show_sublime_autocomplete_suggestions": false
+    "show_sublime_autocomplete_suggestions": false,
+    "flow_debounce_ms": 1000
 }
