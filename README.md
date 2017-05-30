@@ -14,10 +14,14 @@ FlowIDE works out-of-the-box if the `flow` binary is in your `PATH` (note that y
 - `flow_path` (string): the path to your `flow` binary.
 - `use_npm_flow` (boolean): if true, uses the binary from the npm `flow-bin` package in the `node_modules` of your current file's root directory. Using `flow-bin`'s binary will slow down editing features because it is wrapped in a Node script and starts an interpreter on each run.
 - `omit_function_parameters`: (boolean) if true, omits the function parameters when autocompleting flow-typed functions.
-- `show_sublime_autocomplete_suggestions`: (boolean) if true, combines the autocomplete suggestions for Flow and default sublime instead of only showing the Flow suggestions.
+- `show_coverage`: (boolean) if true, show coverage underlines and status bar text.
+- `show_sublime_autocomplete_suggestions`: (boolean) if true, combines the autocomplete suggestions for Flow and Sublime's default suggestions
 
 ### Diagnostics and Autocomplete
 Just works! Autocomplete generates snippets with parameter names when pressing `Enter`.
+
+### Coverage
+The status bar shows how many lines of each file are uncovered, and even underlines the lines missing coverage.
 
 ### Type Hints
 Press `Command+Option+T` (`Control+Alt+T`) to view the type of the variable or function underneath your cursor.
